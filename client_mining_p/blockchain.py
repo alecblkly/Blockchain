@@ -64,39 +64,17 @@ class Blockchain(object):
         # We must make sure that the Dictionary is Ordered,
         # or we'll have inconsistent hashes
 
-        # TODO: Create the block_string
-
-        # TODO: Hash this string using sha256
-
         # By itself, the sha256 function returns the hash in a raw string
         # that will likely include escaped characters.
         # This can be hard to read, but .hexdigest() converts the
         # hash to a string of hexadecimal characters, which is
         # easier to work with and understand
         hex_hash = raw_hash.hexdigest()
-
-        # TODO: Return the hashed block string in hexadecimal format
         return hex_hash
 
     @property
     def last_block(self):
         return self.chain[-1]
-
-    # def proof_of_work(self, block):
-    #     """
-    #     Simple Proof of Work Algorithm
-    #     Stringify the block and look for a proof.
-    #     Loop through possibilities, checking each one against `valid_proof`
-    #     in an effort to find a number that is a valid proof
-    #     :return: A valid proof for the provided block
-    #     """
-    #     block_string = json.dumps(block, sort_keys=True)
-
-    #     proof = 0
-    #     while self.valid_proof(block_string, proof) is False:
-    #         proof += 1
-
-    #     return proof
 
     @staticmethod
     def valid_proof(block_string, proof):
@@ -136,22 +114,36 @@ def last_block():
 
 @app.route('/mine', methods=['POST'])
 def mine():
-    # Run the proof of work algorithm to get the next proof
-    proof = blockchain.proof_of_work(blockchain.last_block)
-    # Forge the new Block by adding it to the chain with the proof
-    previous_hash = blockchain.hash(blockchain.last_block)
-    block = blockchain.new_block(proof, previous_hash)
-    response = {
-        'new_block': block
-    }
+    data = request.get_json()
 
-    return jsonify(response), 200
+    if not data['proof'] and not data['id']:
+        response = {
+            "Error": "Proof and ID both need to be present"
+        }
+        server_code = 400
+    else:
+        string_block = json.dumps(blockchain.last_block, sort_keys=True)
+        proof_data = data['proof']
+
+        if blockchain.valid_proof(string_block, proof_data):
+            last_item = blockchain.hash(blockchain.last_block)
+            blockchain.valid_proof(proof_data, last_item)
+            response = {
+                "message": "New Block Forged"
+            }
+            server_code = 201
+        else:
+            response = {
+                "Error": "New block was not forged."
+            }
+            server_code = 400
+
+    return jsonify(response), server_code
 
 
 @app.route('/chain', methods=['GET'])
 def full_chain():
     response = {
-        # TODO: Return the chain and its current length
         'chain': blockchain.chain,
         'length': len(blockchain.chain)
     }
