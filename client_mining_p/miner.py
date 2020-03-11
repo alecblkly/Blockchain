@@ -3,6 +3,7 @@ import requests
 
 import sys
 import json
+import time
 
 
 def proof_of_work(block):
@@ -41,6 +42,7 @@ def valid_proof(block_string, proof):
 
 coins_mined = 0
 
+
 if __name__ == '__main__':
     # What is the server address? IE `python3 miner.py https://server.com/api/`
     if len(sys.argv) > 1:
@@ -53,7 +55,7 @@ if __name__ == '__main__':
     id = f.read()
     print("ID is", id)
     f.close()
-
+    start = time.time()
     # Run forever until interrupted
     while True:
         r = requests.get(url=node + "/last_block")
@@ -71,9 +73,9 @@ if __name__ == '__main__':
         print("There was a success!\n")
         print("Starting mining...\n")
         new_proof = proof_of_work(block_data)
-
+        end = time.time()
         # When found, POST it to the server {"proof": new_proof, "id": id}
-        print("Success, Proof found.\n")
+        print(f"Success, Proof found in {end - start} seconds.\n")
         post_data = {"proof": new_proof, "id": id}
 
         r = requests.post(url=node + "/mine", json=post_data)
