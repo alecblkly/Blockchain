@@ -105,7 +105,7 @@ blockchain = Blockchain()
 
 
 @app.route('/last_block', methods=['GET'])
-def last_block():
+def prev_block():
     response = {
         'last_block': blockchain.last_block
     }
@@ -114,31 +114,59 @@ def last_block():
 
 @app.route('/mine', methods=['POST'])
 def mine():
-    data = request.get_json()
+    # Lecture Code
+    values = request.get_json()
 
-    if not data['proof'] and not data['id']:
+    required = ['proof', 'id']
+
+    if not all(k in values for k in required):
+        response = {"message": "Missing values"}
+        return jsonify(response), 400
+
+    submitted_proof = values['proof']
+
+    block_string = json.dumps(blockchain.last_block, sort_keys=True)
+    if blockchain.valid_proof(block_string, submitted_proof):
+
+        previous_hash = blockchain.hash(blockchain.last_block)
+        block = blockchain.new_block(submitted_proof, previous_hash)
         response = {
-            "Error": "Proof and ID both need to be present"
+            "message": "New Block Forged",
+            "new_block": block
         }
-        server_code = 400
+        return jsonify(response), 200
     else:
-        string_block = json.dumps(blockchain.last_block, sort_keys=True)
-        proof_data = data['proof']
+        response = {
+            "message": "Proof was invalid or late"
+        }
+        return jsonify(response), 200
 
-        if blockchain.valid_proof(string_block, proof_data):
-            last_item = blockchain.hash(blockchain.last_block)
-            blockchain.valid_proof(proof_data, last_item)
-            response = {
-                "message": "New Block Forged"
-            }
-            server_code = 201
-        else:
-            response = {
-                "Error": "New block was not forged."
-            }
-            server_code = 400
+    # Self Code
+    # data = request.get_json()
 
-    return jsonify(response), server_code
+    # if not data['proof'] and not data['id']:
+    #     response = {
+    #         "Error": "Proof and ID both need to be present"
+    #     }
+    #     server_code = 400
+    # else:
+    #     string_block = json.dumps(blockchain.last_block, sort_keys=True)
+    #     proof_data = data['proof']
+
+    #     if blockchain.valid_proof(string_block, proof_data):
+    #         last_item = blockchain.hash(blockchain.last_block)
+    #         blockchain.valid_proof(proof_data, last_item)
+    #         response = {
+    #             "message": "New Block Forged"
+    #         }
+    #         server_code = 201
+    #     else:
+    #         response = {
+    #             "Error": "New block was not forged."
+    #         }
+    #         server_code = 400
+
+    # return jsonify(response), server_code
 
 
 @app.route('/chain', methods=['GET'])

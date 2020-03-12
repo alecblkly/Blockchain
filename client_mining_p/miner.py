@@ -70,16 +70,22 @@ if __name__ == '__main__':
 
         block_data = data['last_block']
         print("---------------------------------------")
-        print("There was a success!\n")
         print("Starting mining...\n")
         new_proof = proof_of_work(block_data)
+        print(f"There was a success! Proof Found. {new_proof}\n")
         end = time.time()
         # When found, POST it to the server {"proof": new_proof, "id": id}
         print(f"Success, Proof found in {end - start} seconds.\n")
         post_data = {"proof": new_proof, "id": id}
 
         r = requests.post(url=node + "/mine", json=post_data)
-        data = r.json()
+        try:
+            data = r.json()
+        except ValueError:
+            print("Error:  Non-json response")
+            print("Response returned:")
+            print(r)
+            break
 
         if data['message'] == 'New Block Forged':
             coins_mined += 1
