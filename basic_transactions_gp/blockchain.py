@@ -14,6 +14,14 @@ class Blockchain(object):
         # Create the genesis block
         self.new_block(previous_hash=1, proof=100)
 
+    def new_transaction(self, sender, recipient, amount):
+        self.current_transactions.append({
+            'sender': sender,
+            'recipient': recipient,
+            'amount': amount
+        })
+        return self.last_block['index'] + 1
+
     def new_block(self, proof, previous_hash=None):
         """
         Create a new Block in the Blockchain
@@ -105,40 +113,87 @@ blockchain = Blockchain()
 
 
 @app.route('/last_block', methods=['GET'])
-def last_block():
+def final_block():
     response = {
         'last_block': blockchain.last_block
     }
     return jsonify(response), 200
 
 
+@app.route('/transactions/new', methods=['POST'])
+def recieve_transaction():
+    values = request.get_json()
+
+    required = ['sender', 'recipient', 'amount']
+
+    if not all(k in values for k in required):
+        response = {"message": "Missing values"}
+        return jsonify(response), 400
+
+    index = blockchain.new_transaction(
+        values['sender'], values['recipient'], values['amount'])
+
+    response = {'message': f'Transaction will be added to block {index}.'}
+
+    return jsonify(response), 201
+
+
 @app.route('/mine', methods=['POST'])
 def mine():
-    data = request.get_json()
+    # Lecture Code
+    values = request.get_json()
 
-    if not data['proof'] and not data['id']:
+    required = ['proof', 'id']
+
+    if not all(k in values for k in required):
+        response = {"message": "Missing values"}
+        return jsonify(response), 400
+
+    submitted_proof = values['proof']
+
+    block_string = json.dumps(blockchain.last_block, sort_keys=True)
+    if blockchain.valid_proof(block_string, submitted_proof):
+
+        blockchain.new_transaction('0', values['id'], 0.15)
+        previous_hash = blockchain.hash(blockchain.last_block)
+        block = blockchain.new_block(submitted_proof, previous_hash)
         response = {
-            "Error": "Proof and ID both need to be present"
+            "message": "New Block Forged",
+            "new_block": block
         }
-        server_code = 400
+        return jsonify(response), 200
     else:
-        string_block = json.dumps(blockchain.last_block, sort_keys=True)
-        proof_data = data['proof']
+        response = {
+            "message": "Proof was invalid or late"
+        }
+        return jsonify(response), 200
 
-        if blockchain.valid_proof(string_block, proof_data):
-            last_item = blockchain.hash(blockchain.last_block)
-            blockchain.valid_proof(proof_data, last_item)
-            response = {
-                "message": "New Block Forged"
-            }
-            server_code = 201
-        else:
-            response = {
-                "Error": "New block was not forged."
-            }
-            server_code = 400
+    # Self Code
+    # data = request.get_json()
 
-    return jsonify(response), server_code
+    # if not data['proof'] and not data['id']:
+    #     response = {
+    #         "Error": "Proof and ID both need to be present"
+    #     }
+    #     server_code = 400
+    # else:
+    #     string_block = json.dumps(blockchain.last_block, sort_keys=True)
+    #     proof_data = data['proof']
+
+    #     if blockchain.valid_proof(string_block, proof_data):
+    #         last_item = blockchain.hash(blockchain.last_block)
+    #         blockchain.valid_proof(proof_data, last_item)
+    #         response = {
+    #             "message": "New Block Forged"
+    #         }
+    #         server_code = 201
+    #     else:
+    #         response = {
+    #             "Error": "New block was not forged."
+    #         }
+    #         server_code = 400
+
+    # return jsonify(response), server_code
 
 
 @app.route('/chain', methods=['GET'])
