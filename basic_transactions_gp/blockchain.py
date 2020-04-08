@@ -4,6 +4,7 @@ from time import time
 from uuid import uuid4
 
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 
 class Blockchain(object):
@@ -104,6 +105,7 @@ class Blockchain(object):
 
 # Instantiate our Node
 app = Flask(__name__)
+CORS(app)
 
 # Generate a globally unique address for this node
 node_identifier = str(uuid4()).replace('-', '')
@@ -167,33 +169,6 @@ def mine():
             "message": "Proof was invalid or late"
         }
         return jsonify(response), 200
-
-    # Self Code
-    # data = request.get_json()
-
-    # if not data['proof'] and not data['id']:
-    #     response = {
-    #         "Error": "Proof and ID both need to be present"
-    #     }
-    #     server_code = 400
-    # else:
-    #     string_block = json.dumps(blockchain.last_block, sort_keys=True)
-    #     proof_data = data['proof']
-
-    #     if blockchain.valid_proof(string_block, proof_data):
-    #         last_item = blockchain.hash(blockchain.last_block)
-    #         blockchain.valid_proof(proof_data, last_item)
-    #         response = {
-    #             "message": "New Block Forged"
-    #         }
-    #         server_code = 201
-    #     else:
-    #         response = {
-    #             "Error": "New block was not forged."
-    #         }
-    #         server_code = 400
-
-    # return jsonify(response), server_code
 
 
 @app.route('/chain', methods=['GET'])
